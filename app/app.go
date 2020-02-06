@@ -78,17 +78,17 @@ type App interface {
 
 	// images
 	ListImages(ctx context.Context,
-		filters map[string]string) ([]*model.SoftwareImage, error)
+		filters map[string]string) ([]*model.Artifact, error)
 	DownloadLink(ctx context.Context, imageID string,
 		expire time.Duration) (*model.Link, error)
-	GetImage(ctx context.Context, id string) (*model.SoftwareImage, error)
+	GetArtifact(ctx context.Context, id string) (*model.Artifact, error)
 	DeleteImage(ctx context.Context, imageID string) error
 	CreateImage(ctx context.Context,
 		multipartUploadMsg *model.MultipartUploadMsg) (string, error)
-	GenerateImage(ctx context.Context,
-		multipartUploadMsg *model.MultipartGenerateImageMsg) (string, error)
+	GenerateArtifact(ctx context.Context,
+		multipartUploadMsg *model.MultipartGenerateArtifactMsg) (string, error)
 	EditImage(ctx context.Context, id string,
-		constructorData *model.SoftwareImageMetaConstructor) (bool, error)
+		constructorData *model.ReleaseMeta) (bool, error)
 
 	// deployments
 	CreateDeployment(ctx context.Context,
@@ -268,7 +268,7 @@ func (d *Deployments) handleArtifact(ctx context.Context,
 		return artifactID, ErrModelArtifactNotUnique
 	}
 
-	image := model.NewSoftwareImage(
+	image := model.NewArtifact(
 		artifactID, multipartUploadMsg.MetaConstructor, metaArtifactConstructor, multipartUploadMsg.ArtifactSize)
 
 	// save image structure in the system
@@ -279,43 +279,43 @@ func (d *Deployments) handleArtifact(ctx context.Context,
 	return artifactID, nil
 }
 
-// GenerateImage parses raw data and uploads it to the file storage - in parallel,
+// GenerateArtifact parses raw data and uploads it to the file storage - in parallel,
 // creates image structure in the system, and starts the workflow to generate the
 // artifact from them.
 // Returns image ID and nil on success.
-func (d *Deployments) GenerateImage(ctx context.Context,
-	multipartGenerateImageMsg *model.MultipartGenerateImageMsg) (string, error) {
+func (d *Deployments) GenerateArtifact(ctx context.Context,
+	multipartGenerateArtifactMsg *model.MultipartGenerateArtifactMsg) (string, error) {
 
 	switch {
-	case multipartGenerateImageMsg == nil:
+	case multipartGenerateArtifactMsg == nil:
 		return "", ErrModelMultipartUploadMsgMalformed
-	case multipartGenerateImageMsg.Size > MaxImageSize:
+	case multipartGenerateArtifactMsg.Size > MaxImageSize:
 		return "", ErrModelArtifactFileTooLarge
 	}
 
-	imgID, err := d.handleRawFile(ctx, multipartGenerateImageMsg)
+	imgID, err := d.handleRawFile(ctx, multipartGenerateArtifactMsg)
 	if err != nil {
 		return "", err
 	}
 
-	multipartGenerateImageMsg.ArtifactID = imgID
+	multipartGenerateArtifactMsg.ArtifactID = imgID
 	if id := identity.FromContext(ctx); id != nil && len(id.Tenant) > 0 {
-		multipartGenerateImageMsg.TenantID = id.Tenant
+		multipartGenerateArtifactMsg.TenantID = id.Tenant
 	}
 
 	link, err := d.fileStorage.GetRequest(ctx, imgID, DefaultImageGenerationLinkExpire, ArtifactContentType)
 	if err != nil {
 		return "", err
 	}
-	multipartGenerateImageMsg.GetArtifactURI = link.Uri
+	multipartGenerateArtifactMsg.GetArtifactURI = link.Uri
 
 	link, err = d.fileStorage.DeleteRequest(ctx, imgID, DefaultImageGenerationLinkExpire)
 	if err != nil {
 		return "", err
 	}
-	multipartGenerateImageMsg.DeleteArtifactURI = link.Uri
+	multipartGenerateArtifactMsg.DeleteArtifactURI = link.Uri
 
-	err = d.workflowsClient.StartGenerateArtifact(ctx, multipartGenerateImageMsg)
+	err = d.workflowsClient.StartGenerateArtifact(ctx, multipartGenerateArtifactMsg)
 	if err != nil {
 		if cleanupErr := d.fileStorage.Delete(ctx, imgID); cleanupErr != nil {
 			return "", errors.Wrap(err, cleanupErr.Error())
@@ -330,7 +330,7 @@ func (d *Deployments) GenerateImage(ctx context.Context,
 // and starts the workflow to generate the artifact.
 // Returns image ID, artifact file ID and nil on success.
 func (d *Deployments) handleRawFile(ctx context.Context,
-	multipartGenerateImageMsg *model.MultipartGenerateImageMsg) (string, error) {
+	multipartGenerateArtifactMsg *model.MultipartGenerateArtifactMsg) (string, error) {
 
 	uid, err := uuid.NewV4()
 	if err != nil {
@@ -343,7 +343,7 @@ func (d *Deployments) handleRawFile(ctx context.Context,
 	// artifact is considered to be unique if there is no artifact with the same name
 	// and supporting the same platform in the system
 	isArtifactUnique, err := d.db.IsArtifactUnique(ctx,
-		multipartGenerateImageMsg.Name, multipartGenerateImageMsg.DeviceTypesCompatible)
+		multipartGenerateArtifactMsg.Name, multipartGenerateArtifactMsg.DeviceTypesCompatible)
 	if err != nil {
 		return "", errors.Wrap(err, "Fail to check if artifact is unique")
 	}
@@ -351,9 +351,9 @@ func (d *Deployments) handleRawFile(ctx context.Context,
 		return "", ErrModelArtifactNotUnique
 	}
 
-	lr := io.LimitReader(multipartGenerateImageMsg.FileReader, multipartGenerateImageMsg.Size)
+	lr := io.LimitReader(multipartGenerateArtifactMsg.FileReader, multipartGenerateArtifactMsg.Size)
 	err = d.fileStorage.UploadArtifact(ctx,
-		artifactID, multipartGenerateImageMsg.Size, lr, ArtifactContentType)
+		artifactID, multipartGenerateArtifactMsg.Size, lr, ArtifactContentType)
 	if err != nil {
 		return "", err
 	}
@@ -361,9 +361,9 @@ func (d *Deployments) handleRawFile(ctx context.Context,
 	return artifactID, nil
 }
 
-// GetImage allows to fetch image object with specified id
+// GetArtifact allows to fetch image object with specified id
 // Nil if not found
-func (d *Deployments) GetImage(ctx context.Context, id string) (*model.SoftwareImage, error) {
+func (d *Deployments) GetArtifact(ctx context.Context, id string) (*model.Artifact, error) {
 
 	image, err := d.db.FindImageByID(ctx, id)
 	if err != nil {
@@ -383,7 +383,7 @@ func (d *Deployments) GetImage(ctx context.Context, id string) (*model.SoftwareI
 // In case of already finished updates only image file is not needed, metadata is attached directly to device deployment
 // therefore we still have some information about image that have been used (but not the file)
 func (d *Deployments) DeleteImage(ctx context.Context, imageID string) error {
-	found, err := d.GetImage(ctx, imageID)
+	found, err := d.GetArtifact(ctx, imageID)
 
 	if err != nil {
 		return errors.Wrap(err, "Getting image metadata")
@@ -419,7 +419,7 @@ func (d *Deployments) DeleteImage(ctx context.Context, imageID string) error {
 
 // ListImages according to specified filers.
 func (d *Deployments) ListImages(ctx context.Context,
-	filters map[string]string) ([]*model.SoftwareImage, error) {
+	filters map[string]string) ([]*model.Artifact, error) {
 
 	imageList, err := d.db.FindAll(ctx)
 	if err != nil {
@@ -427,7 +427,7 @@ func (d *Deployments) ListImages(ctx context.Context,
 	}
 
 	if imageList == nil {
-		return make([]*model.SoftwareImage, 0), nil
+		return make([]*model.Artifact, 0), nil
 	}
 
 	return imageList, nil
@@ -435,7 +435,7 @@ func (d *Deployments) ListImages(ctx context.Context,
 
 // EditObject allows editing only if image have not been used yet in any deployment.
 func (d *Deployments) EditImage(ctx context.Context, imageID string,
-	constructor *model.SoftwareImageMetaConstructor) (bool, error) {
+	constructor *model.ReleaseMeta) (bool, error) {
 
 	if err := constructor.Validate(); err != nil {
 		return false, errors.Wrap(err, "Validating image metadata")
@@ -460,7 +460,7 @@ func (d *Deployments) EditImage(ctx context.Context, imageID string,
 	}
 
 	foundImage.SetModified(time.Now())
-	foundImage.SoftwareImageMetaConstructor = *constructor
+	foundImage.ReleaseMeta = *constructor
 
 	_, err = d.db.Update(ctx, foundImage)
 	if err != nil {
@@ -522,8 +522,8 @@ func getUpdateFiles(uFiles []*handlers.DataFile) ([]model.UpdateFile, error) {
 	return files, nil
 }
 
-func getMetaFromArchive(r *io.Reader) (*model.SoftwareImageMetaArtifactConstructor, error) {
-	metaArtifact := model.NewSoftwareImageMetaArtifactConstructor()
+func getMetaFromArchive(r *io.Reader) (*model.ArtifactMeta, error) {
+	metaArtifact := model.NewArtifactMeta()
 
 	aReader := areader.NewReader(*r)
 
@@ -568,10 +568,10 @@ func getMetaFromArchive(r *io.Reader) (*model.SoftwareImageMetaArtifactConstruct
 	return metaArtifact, nil
 }
 
-func getArtifactIDs(artifacts []*model.SoftwareImage) []string {
+func getArtifactIDs(artifacts []*model.Artifact) []string {
 	artifactIDs := make([]string, 0, len(artifacts))
 	for _, artifact := range artifacts {
-		artifactIDs = append(artifactIDs, artifact.Id)
+		artifactIDs = append(artifactIDs, artifact.ID)
 	}
 	return artifactIDs
 }
@@ -731,7 +731,7 @@ func (d *Deployments) assignArtifact(
 	installed model.InstalledDeviceDeployment) error {
 
 	// Assign artifact to the device deployment.
-	var artifact *model.SoftwareImage
+	var artifact *model.Artifact
 	var err error
 	// Clear device deployment image
 	// New artifact will be selected for the device deployment
@@ -833,7 +833,7 @@ func (d *Deployments) GetDeploymentForDeviceWithCurrent(ctx context.Context, dev
 		return nil, nil
 	}
 
-	link, err := d.fileStorage.GetRequest(ctx, deviceDeployment.Image.Id,
+	link, err := d.fileStorage.GetRequest(ctx, deviceDeployment.Image.ID,
 		DefaultUpdateDownloadLinkExpire, d.imageContentType)
 	if err != nil {
 		return nil, errors.Wrap(err, "Generating download link for the device")

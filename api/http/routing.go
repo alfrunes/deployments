@@ -119,10 +119,10 @@ func NewImagesResourceRoutes(controller *DeploymentsApiHandlers) []*rest.Route {
 
 	return []*rest.Route{
 		rest.Post(ApiUrlManagementArtifacts, controller.NewImage),
-		rest.Post(ApiUrlManagementArtifactsGenerate, controller.GenerateImage),
+		rest.Post(ApiUrlManagementArtifactsGenerate, controller.GenerateArtifact),
 		rest.Get(ApiUrlManagementArtifacts, controller.ListImages),
 
-		rest.Get(ApiUrlManagementArtifactsId, controller.GetImage),
+		rest.Get(ApiUrlManagementArtifactsId, controller.GetArtifact),
 		rest.Delete(ApiUrlManagementArtifactsId, controller.DeleteImage),
 		rest.Put(ApiUrlManagementArtifactsId, controller.EditImage),
 

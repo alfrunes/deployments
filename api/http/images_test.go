@@ -324,9 +324,9 @@ func TestPostArtifactsGenerate(t *testing.T) {
 		requestContentType       string
 		responseCode             int
 		responseBody             string
-		appGenerateImage         bool
-		appGenerateImageResponse string
-		appGenerateImageError    error
+		appGenerateArtifact         bool
+		appGenerateArtifactResponse string
+		appGenerateArtifactError    error
 	}{
 		{
 			requestBodyObject:  []h.Part{},
@@ -440,9 +440,9 @@ func TestPostArtifactsGenerate(t *testing.T) {
 			requestContentType:       "multipart/form-data",
 			responseCode:             http.StatusCreated,
 			responseBody:             "",
-			appGenerateImage:         true,
-			appGenerateImageResponse: "artifactID",
-			appGenerateImageError:    nil,
+			appGenerateArtifact:         true,
+			appGenerateArtifactResponse: "artifactID",
+			appGenerateArtifactError:    nil,
 		},
 		{
 			requestBodyObject: []h.Part{
@@ -479,9 +479,9 @@ func TestPostArtifactsGenerate(t *testing.T) {
 			requestContentType:       "multipart/form-data",
 			responseCode:             http.StatusUnprocessableEntity,
 			responseBody:             "Artifact not unique",
-			appGenerateImage:         true,
-			appGenerateImageResponse: "",
-			appGenerateImageError:    app.ErrModelArtifactNotUnique,
+			appGenerateArtifact:         true,
+			appGenerateArtifactResponse: "",
+			appGenerateArtifactError:    app.ErrModelArtifactNotUnique,
 		},
 		{
 			requestBodyObject: []h.Part{
@@ -518,9 +518,9 @@ func TestPostArtifactsGenerate(t *testing.T) {
 			requestContentType:       "multipart/form-data",
 			responseCode:             http.StatusBadRequest,
 			responseBody:             "Artifact file too large",
-			appGenerateImage:         true,
-			appGenerateImageResponse: "",
-			appGenerateImageError:    app.ErrModelArtifactFileTooLarge,
+			appGenerateArtifact:         true,
+			appGenerateArtifactResponse: "",
+			appGenerateArtifactError:    app.ErrModelArtifactFileTooLarge,
 		},
 		{
 			requestBodyObject: []h.Part{
@@ -557,9 +557,9 @@ func TestPostArtifactsGenerate(t *testing.T) {
 			requestContentType:       "multipart/form-data",
 			responseCode:             http.StatusBadRequest,
 			responseBody:             "Cannot parse artifact file",
-			appGenerateImage:         true,
-			appGenerateImageResponse: "",
-			appGenerateImageError:    app.ErrModelParsingArtifactFailed,
+			appGenerateArtifact:         true,
+			appGenerateArtifactResponse: "",
+			appGenerateArtifactError:    app.ErrModelParsingArtifactFailed,
 		},
 		{
 			requestBodyObject: []h.Part{
@@ -596,9 +596,9 @@ func TestPostArtifactsGenerate(t *testing.T) {
 			requestContentType:       "multipart/form-data",
 			responseCode:             http.StatusInternalServerError,
 			responseBody:             "internal error",
-			appGenerateImage:         true,
-			appGenerateImageResponse: "",
-			appGenerateImageError:    errors.New("generic error"),
+			appGenerateArtifact:         true,
+			appGenerateArtifactResponse: "",
+			appGenerateArtifactError:    errors.New("generic error"),
 		},
 	}
 
@@ -611,10 +611,10 @@ func TestPostArtifactsGenerate(t *testing.T) {
 		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
 			app := &app_mocks.App{}
 
-			if tc.appGenerateImage {
-				app.On("GenerateImage",
+			if tc.appGenerateArtifact {
+				app.On("GenerateArtifact",
 					h.ContextMatcher(),
-					mock.MatchedBy(func(msg *model.MultipartGenerateImageMsg) bool {
+					mock.MatchedBy(func(msg *model.MultipartGenerateArtifactMsg) bool {
 						size, _ := strconv.Atoi(tc.requestBodyObject[2].FieldValue)
 
 						assert.Equal(t, msg.Name, tc.requestBodyObject[0].FieldValue)
@@ -627,11 +627,11 @@ func TestPostArtifactsGenerate(t *testing.T) {
 
 						return true
 					}),
-				).Return(tc.appGenerateImageResponse, tc.appGenerateImageError)
+				).Return(tc.appGenerateArtifactResponse, tc.appGenerateArtifactError)
 			}
 
 			d := NewDeploymentsApiHandlers(store, restView, app)
-			api := setUpRestTest("/api/0.0.1/artifacts/generate", rest.Post, d.GenerateImage)
+			api := setUpRestTest("/api/0.0.1/artifacts/generate", rest.Post, d.GenerateArtifact)
 			req := h.MakeMultipartRequest("POST", "http://localhost/api/0.0.1/artifacts/generate",
 				tc.requestContentType, tc.requestBodyObject)
 			req.Header.Set("Authorization", HTTPHeaderAuthorizationBearer+" TOKEN")
@@ -645,7 +645,7 @@ func TestPostArtifactsGenerate(t *testing.T) {
 				assert.Contains(t, string(body), tc.responseBody)
 			}
 
-			if tc.appGenerateImage {
+			if tc.appGenerateArtifact {
 				app.AssertExpectations(t)
 			}
 		})

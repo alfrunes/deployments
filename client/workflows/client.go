@@ -43,7 +43,7 @@ type HTTPClient interface {
 // Client is the workflows client
 type Client interface {
 	SetHTTPClient(httpClient HTTPClient)
-	StartGenerateArtifact(ctx context.Context, multipartGenerateImageMsg *model.MultipartGenerateImageMsg) error
+	StartGenerateArtifact(ctx context.Context, multipartGenerateArtifactMsg *model.MultipartGenerateArtifactMsg) error
 }
 
 // NewClient returns a new workflows client
@@ -64,14 +64,14 @@ func (c *client) SetHTTPClient(httpClient HTTPClient) {
 	c.httpClient = httpClient
 }
 
-func (c *client) StartGenerateArtifact(ctx context.Context, multipartGenerateImageMsg *model.MultipartGenerateImageMsg) error {
+func (c *client) StartGenerateArtifact(ctx context.Context, multipartGenerateArtifactMsg *model.MultipartGenerateArtifactMsg) error {
 	l := log.FromContext(ctx)
 	l.Debugf("Submit generate artifact: tenantID=%s, artifactID=%s",
-		multipartGenerateImageMsg.TenantID, multipartGenerateImageMsg.ArtifactID)
+		multipartGenerateArtifactMsg.TenantID, multipartGenerateArtifactMsg.ArtifactID)
 
 	workflowsURL := c.baseURL + generateArtifactURL
 
-	payload, _ := json.Marshal(multipartGenerateImageMsg)
+	payload, _ := json.Marshal(multipartGenerateArtifactMsg)
 	req, err := http.NewRequest("POST", workflowsURL, strings.NewReader(string(payload)))
 	if err != nil {
 		return err

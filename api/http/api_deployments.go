@@ -137,7 +137,7 @@ func (d *DeploymentsApiHandlers) GetLimit(w rest.ResponseWriter, r *rest.Request
 
 // images
 
-func (d *DeploymentsApiHandlers) GetImage(w rest.ResponseWriter, r *rest.Request) {
+func (d *DeploymentsApiHandlers) GetArtifact(w rest.ResponseWriter, r *rest.Request) {
 	l := requestlog.GetRequestLogger(r)
 
 	id := r.PathParam("id")
@@ -147,7 +147,7 @@ func (d *DeploymentsApiHandlers) GetImage(w rest.ResponseWriter, r *rest.Request
 		return
 	}
 
-	image, err := d.app.GetImage(r.Context(), id)
+	image, err := d.app.GetArtifact(r.Context(), id)
 	if err != nil {
 		d.view.RenderInternalError(w, r, err, l)
 		return
@@ -232,7 +232,7 @@ func (d *DeploymentsApiHandlers) EditImage(w rest.ResponseWriter, r *rest.Reques
 		return
 	}
 
-	constructor, err := getSoftwareImageMetaConstructorFromBody(r)
+	constructor, err := getReleaseMetaFromBody(r)
 	if err != nil {
 		d.view.RenderError(w, r, errors.Wrap(err, "Validating request body"), http.StatusBadRequest, l)
 		return
@@ -256,9 +256,9 @@ func (d *DeploymentsApiHandlers) EditImage(w rest.ResponseWriter, r *rest.Reques
 	d.view.RenderSuccessPut(w)
 }
 
-func getSoftwareImageMetaConstructorFromBody(r *rest.Request) (*model.SoftwareImageMetaConstructor, error) {
+func getReleaseMetaFromBody(r *rest.Request) (*model.ReleaseMeta, error) {
 
-	var constructor *model.SoftwareImageMetaConstructor
+	var constructor *model.ReleaseMeta
 
 	if err := r.DecodeJsonPayload(&constructor); err != nil {
 		return nil, err
@@ -355,12 +355,12 @@ func formatArtifactUploadError(err error) error {
 	return errors.New(errMsg)
 }
 
-// GenerateImage s the multipart Raw Data/Meta upload handler.
+// GenerateArtifact s the multipart Raw Data/Meta upload handler.
 // Request should be of type "multipart/form-data". The parts are
 // key/valyue pairs of metadata information except the last one,
 // which must contain the file containing the raw data to be processed
 // into an artifact.
-func (d *DeploymentsApiHandlers) GenerateImage(w rest.ResponseWriter, r *rest.Request) {
+func (d *DeploymentsApiHandlers) GenerateArtifact(w rest.ResponseWriter, r *rest.Request) {
 	l := requestlog.GetRequestLogger(r)
 
 	err := r.ParseMultipartForm(DefaultMaxMetaSize)
@@ -370,13 +370,13 @@ func (d *DeploymentsApiHandlers) GenerateImage(w rest.ResponseWriter, r *rest.Re
 	}
 
 	// parse multipart message
-	multipartGenerateImageMsg, err := d.ParseGenerateImageMultipart(r)
+	multipartGenerateArtifactMsg, err := d.ParseGenerateArtifactMultipart(r)
 	if err != nil {
 		d.view.RenderError(w, r, err, http.StatusBadRequest, l)
 		return
 	}
 
-	imgID, err := d.app.GenerateImage(r.Context(), multipartGenerateImageMsg)
+	imgID, err := d.app.GenerateArtifact(r.Context(), multipartGenerateArtifactMsg)
 	cause := errors.Cause(err)
 	switch cause {
 	default:
@@ -402,7 +402,7 @@ func (d *DeploymentsApiHandlers) GenerateImage(w rest.ResponseWriter, r *rest.Re
 // ParseMultipart parses multipart/form-data message.
 func (d *DeploymentsApiHandlers) ParseMultipart(r *rest.Request) (*model.MultipartUploadMsg, error) {
 	multipartUploadMsg := &model.MultipartUploadMsg{
-		MetaConstructor: &model.SoftwareImageMetaConstructor{},
+		MetaConstructor: &model.ReleaseMeta{},
 	}
 	multipartUploadMsg.MetaConstructor.Description = r.FormValue("description")
 
@@ -438,45 +438,45 @@ func (d *DeploymentsApiHandlers) ParseMultipart(r *rest.Request) (*model.Multipa
 	return multipartUploadMsg, nil
 }
 
-// ParseGenerateImageMultipart parses multipart/form-data message.
-func (d *DeploymentsApiHandlers) ParseGenerateImageMultipart(r *rest.Request) (*model.MultipartGenerateImageMsg, error) {
-	multipartGenerateImageMsg := &model.MultipartGenerateImageMsg{}
+// ParseGenerateArtifactMultipart parses multipart/form-data message.
+func (d *DeploymentsApiHandlers) ParseGenerateArtifactMultipart(r *rest.Request) (*model.MultipartGenerateArtifactMsg, error) {
+	multipartGenerateArtifactMsg := &model.MultipartGenerateArtifactMsg{}
 
-	multipartGenerateImageMsg.Name = r.FormValue("name")
-	if multipartGenerateImageMsg.Name == "" {
+	multipartGenerateArtifactMsg.Name = r.FormValue("name")
+	if multipartGenerateArtifactMsg.Name == "" {
 		return nil, ErrArtifactNameMissing
 	}
 
-	multipartGenerateImageMsg.Description = r.FormValue("description")
+	multipartGenerateArtifactMsg.Description = r.FormValue("description")
 
-	multipartGenerateImageMsg.Type = r.FormValue("type")
-	if multipartGenerateImageMsg.Type == "" {
+	multipartGenerateArtifactMsg.Type = r.FormValue("type")
+	if multipartGenerateArtifactMsg.Type == "" {
 		return nil, ErrArtifactTypeMissing
 	}
 
-	multipartGenerateImageMsg.Args = r.FormValue("args")
+	multipartGenerateArtifactMsg.Args = r.FormValue("args")
 
 	deviceTypesCompatible := r.FormValue("device_types_compatible")
 	if deviceTypesCompatible == "" {
 		return nil, ErrArtifactDeviceTypesCompatibleMissing
 	}
 
-	multipartGenerateImageMsg.DeviceTypesCompatible = strings.Split(deviceTypesCompatible, ",")
+	multipartGenerateArtifactMsg.DeviceTypesCompatible = strings.Split(deviceTypesCompatible, ",")
 
 	file, fileHeader, err := r.FormFile("file")
 	if err != nil {
 		return nil, ErrArtifactFileMissing
 	}
 
-	multipartGenerateImageMsg.FileReader = file
-	multipartGenerateImageMsg.Size = fileHeader.Size
+	multipartGenerateArtifactMsg.FileReader = file
+	multipartGenerateArtifactMsg.Size = fileHeader.Size
 
 	auth := strings.Split(r.Header.Get(HTTPHeaderAuthorization), " ")
 	if len(auth) == 2 && auth[0] == HTTPHeaderAuthorizationBearer {
-		multipartGenerateImageMsg.Token = auth[1]
+		multipartGenerateArtifactMsg.Token = auth[1]
 	}
 
-	return multipartGenerateImageMsg, nil
+	return multipartGenerateArtifactMsg, nil
 }
 
 // deployments

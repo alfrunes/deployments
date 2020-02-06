@@ -22,57 +22,57 @@ const (
 )
 
 func TestValidateEmptyImageMeta(t *testing.T) {
-	image := NewSoftwareImageMetaConstructor()
+	artifact := NewReleaseMeta()
 
-	if err := image.Validate(); err != nil {
+	if err := artifact.Validate(); err != nil {
 		t.FailNow()
 	}
 }
 
 func TestValidateEmptyImageMetaArtifact(t *testing.T) {
-	image := NewSoftwareImageMetaArtifactConstructor()
+	artifact := NewArtifactMeta()
 
-	if err := image.Validate(); err == nil {
+	if err := artifact.Validate(); err == nil {
 		t.FailNow()
 	}
 }
 
 func TestValidateCorrectImageMeta(t *testing.T) {
-	image := NewSoftwareImageMetaConstructor()
+	artifact := NewReleaseMeta()
 
-	if err := image.Validate(); err != nil {
+	if err := artifact.Validate(); err != nil {
 		t.FailNow()
 	}
 }
 
 func TestValidateCorrectImageMetaYocot(t *testing.T) {
-	image := NewSoftwareImageMetaArtifactConstructor()
+	artifact := NewArtifactMeta()
 	required := "required"
 
-	image.Name = required
-	image.DeviceTypesCompatible = []string{"required"}
-	image.Info = &ArtifactInfo{
+	artifact.Name = required
+	artifact.DeviceTypesCompatible = []string{"required"}
+	artifact.Info = &ArtifactInfo{
 		Format:  required,
 		Version: 1,
 	}
 
-	if err := image.Validate(); err != nil {
+	if err := artifact.Validate(); err != nil {
 		t.FailNow()
 	}
 }
 
 func TestValidateCorrectImage(t *testing.T) {
 	required := "required"
-	imageMeta := NewSoftwareImageMetaConstructor()
-	imageMetaArtifact := NewSoftwareImageMetaArtifactConstructor()
+	artifactMeta := NewReleaseMeta()
+	artifactMetaArtifact := NewArtifactMeta()
 
-	imageMetaArtifact.Name = required
-	imageMetaArtifact.DeviceTypesCompatible = []string{"required"}
+	artifactMetaArtifact.Name = required
+	artifactMetaArtifact.DeviceTypesCompatible = []string{"required"}
 
-	image := NewSoftwareImage(
-		validUUIDv4, imageMeta, imageMetaArtifact, artifactSize)
+	artifact := NewArtifact(
+		validUUIDv4, artifactMeta, artifactMetaArtifact, artifactSize)
 
-	if err := image.Validate(); err != nil {
+	if err := artifact.Validate(); err != nil {
 		t.Errorf("%v", err)
 	}
 }

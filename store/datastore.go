@@ -32,21 +32,21 @@ type DataStore interface {
 
 	//images
 	Exists(ctx context.Context, id string) (bool, error)
-	Update(ctx context.Context, image *model.SoftwareImage) (bool, error)
-	InsertImage(ctx context.Context, image *model.SoftwareImage) error
-	FindImageByID(ctx context.Context, id string) (*model.SoftwareImage, error)
+	Update(ctx context.Context, image *model.Artifact) (bool, error)
+	InsertImage(ctx context.Context, image *model.Artifact) error
+	FindImageByID(ctx context.Context, id string) (*model.Artifact, error)
 	IsArtifactUnique(ctx context.Context, artifactName string,
 		deviceTypesCompatible []string) (bool, error)
 	DeleteImage(ctx context.Context, id string) error
-	FindAll(ctx context.Context) ([]*model.SoftwareImage, error)
+	FindAll(ctx context.Context) ([]*model.Artifact, error)
 
 	//artifact getter
 	ImagesByName(ctx context.Context,
-		artifactName string) ([]*model.SoftwareImage, error)
+		artifactName string) ([]*model.Artifact, error)
 	ImageByIdsAndDeviceType(ctx context.Context,
-		ids []string, deviceType string) (*model.SoftwareImage, error)
+		ids []string, deviceType string) (*model.Artifact, error)
 	ImageByNameAndDeviceType(ctx context.Context,
-		name, deviceType string) (*model.SoftwareImage, error)
+		name, deviceType string) (*model.Artifact, error)
 
 	//device deployment log
 	SaveDeviceDeploymentLog(ctx context.Context, log model.DeploymentLog) error
@@ -67,7 +67,7 @@ type DataStore interface {
 	UpdateDeviceDeploymentLogAvailability(ctx context.Context,
 		deviceID string, deploymentID string, log bool) error
 	AssignArtifact(ctx context.Context, deviceID string,
-		deploymentID string, artifact *model.SoftwareImage) error
+		deploymentID string, artifact *model.Artifact) error
 	AggregateDeviceDeploymentByStatus(ctx context.Context,
 		id string) (model.Stats, error)
 	GetDeviceStatusesForDeployment(ctx context.Context,

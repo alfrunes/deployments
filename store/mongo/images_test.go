@@ -25,32 +25,32 @@ import (
 	"github.com/mendersoftware/deployments/model"
 )
 
-func TestSoftwareImagesStorageImageByNameAndDeviceType(t *testing.T) {
+func TestArtifactsStorageImageByNameAndDeviceType(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping TestDeploymentStorageImageByNameAndDeviceType in short mode.")
 	}
 
 	//image dataset - common for all cases
 	inputImgs := bson.A{
-		&model.SoftwareImage{
-			Id: "1",
-			SoftwareImageMetaConstructor: model.SoftwareImageMetaConstructor{
+		&model.Artifact{
+			ID: "1",
+			ReleaseMeta: model.ReleaseMeta{
 				Description: "description",
 			},
 
-			SoftwareImageMetaArtifactConstructor: model.SoftwareImageMetaArtifactConstructor{
+			ArtifactMeta: model.ArtifactMeta{
 				Name:                  "App1 v1.0",
 				DeviceTypesCompatible: []string{"foo"},
 				Updates:               []model.Update{},
 			},
 		},
-		&model.SoftwareImage{
-			Id: "2",
-			SoftwareImageMetaConstructor: model.SoftwareImageMetaConstructor{
+		&model.Artifact{
+			ID: "2",
+			ReleaseMeta: model.ReleaseMeta{
 				Description: "description",
 			},
 
-			SoftwareImageMetaArtifactConstructor: model.SoftwareImageMetaArtifactConstructor{
+			ArtifactMeta: model.ArtifactMeta{
 				Name:                  "App2 v0.1",
 				DeviceTypesCompatible: []string{"bar", "baz"},
 				Updates:               []model.Update{},
@@ -73,21 +73,21 @@ func TestSoftwareImagesStorageImageByNameAndDeviceType(t *testing.T) {
 		InputDevType   string
 		InputTenant    string
 
-		OutputImage *model.SoftwareImage
+		OutputImage *model.Artifact
 		OutputError error
 	}{
 		"name and dev type ok - single type": {
 			InputImageName: "App1 v1.0",
 			InputDevType:   "foo",
 
-			OutputImage: inputImgs[0].(*model.SoftwareImage),
+			OutputImage: inputImgs[0].(*model.Artifact),
 			OutputError: nil,
 		},
 		"name and dev type ok - multiple types": {
 			InputImageName: "App2 v0.1",
 			InputDevType:   "bar",
 
-			OutputImage: inputImgs[1].(*model.SoftwareImage),
+			OutputImage: inputImgs[1].(*model.Artifact),
 			OutputError: nil,
 		},
 		"name ok, dev type incompatible - single type": {
@@ -116,14 +116,14 @@ func TestSoftwareImagesStorageImageByNameAndDeviceType(t *testing.T) {
 			InputDevType:   "foo",
 
 			OutputImage: nil,
-			OutputError: ErrSoftwareImagesStorageInvalidName,
+			OutputError: ErrArtifactsStorageInvalidName,
 		},
 		"dev type validation error": {
 			InputImageName: "App2 v0.1",
 			InputDevType:   "",
 
 			OutputImage: nil,
-			OutputError: ErrSoftwareImagesStorageInvalidDeviceType,
+			OutputError: ErrArtifactsStorageInvalidDeviceType,
 		},
 		"other tenant": {
 			InputImageName: "App1 v1.0",
@@ -174,13 +174,13 @@ func TestIsArtifactUnique(t *testing.T) {
 
 	//image dataset - common for all cases
 	inputImgs := []interface{}{
-		&model.SoftwareImage{
-			Id: "1",
-			SoftwareImageMetaConstructor: model.SoftwareImageMetaConstructor{
+		&model.Artifact{
+			ID: "1",
+			ReleaseMeta: model.ReleaseMeta{
 				Description: "description",
 			},
 
-			SoftwareImageMetaArtifactConstructor: model.SoftwareImageMetaArtifactConstructor{
+			ArtifactMeta: model.ArtifactMeta{
 				Name:                  "app1-v1.0",
 				DeviceTypesCompatible: []string{"foo", "bar"},
 				Updates:               []model.Update{},
@@ -229,7 +229,7 @@ func TestIsArtifactUnique(t *testing.T) {
 		"empty artifact name": {
 			InputDevTypes: []string{"baz", "bah"},
 
-			OutputError: ErrSoftwareImagesStorageInvalidArtifactName,
+			OutputError: ErrArtifactsStorageInvalidArtifactName,
 		},
 		"other tenant": {
 			// is unique because we're using another DB

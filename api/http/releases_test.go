@@ -44,15 +44,15 @@ func TestGetReleases(t *testing.T) {
 		"ok": {
 			storeReleases: []dmodel.Release{
 				dmodel.Release{
-					Artifacts: []model.SoftwareImage{
-						model.SoftwareImage{
-							Id: "1",
-							SoftwareImageMetaConstructor: model.SoftwareImageMetaConstructor{
+					Artifacts: []model.Artifact{
+						model.Artifact{
+							ID: "1",
+							ReleaseMeta: model.ReleaseMeta{
 								Description: "description",
 							},
 
-							SoftwareImageMetaArtifactConstructor: model.SoftwareImageMetaArtifactConstructor{
-								Name: "App1 v1.0",
+							ArtifactMeta: model.ArtifactMeta{
+								Name:                  "App1 v1.0",
 								DeviceTypesCompatible: []string{"bar", "baz"},
 								Updates:               []model.Update{},
 							},
@@ -65,15 +65,15 @@ func TestGetReleases(t *testing.T) {
 				nil,
 				[]dmodel.Release{
 					dmodel.Release{
-						Artifacts: []model.SoftwareImage{
-							model.SoftwareImage{
-								Id: "1",
-								SoftwareImageMetaConstructor: model.SoftwareImageMetaConstructor{
+						Artifacts: []model.Artifact{
+							model.Artifact{
+								ID: "1",
+								ReleaseMeta: model.ReleaseMeta{
 									Description: "description",
 								},
 
-								SoftwareImageMetaArtifactConstructor: model.SoftwareImageMetaArtifactConstructor{
-									Name: "App1 v1.0",
+								ArtifactMeta: model.ArtifactMeta{
+									Name:                  "App1 v1.0",
 									DeviceTypesCompatible: []string{"bar", "baz"},
 									Updates:               []model.Update{},
 								},

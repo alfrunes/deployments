@@ -36,21 +36,21 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-func TestGenerateImageError(t *testing.T) {
+func TestGenerateArtifactError(t *testing.T) {
 	db := mocks.DataStore{}
 	fs := &fs_mocks.FileStorage{}
 	d := NewDeployments(&db, fs, ArtifactContentType)
 
 	testCases := []struct {
-		multipartGenerateImage *model.MultipartGenerateImageMsg
+		multipartGenerateArtifact *model.MultipartGenerateArtifactMsg
 		expectedError          error
 	}{
 		{
-			multipartGenerateImage: nil,
+			multipartGenerateArtifact: nil,
 			expectedError:          ErrModelMultipartUploadMsgMalformed,
 		},
 		{
-			multipartGenerateImage: &model.MultipartGenerateImageMsg{
+			multipartGenerateArtifact: &model.MultipartGenerateArtifactMsg{
 				Size: MaxImageSize + 1,
 			},
 			expectedError: ErrModelArtifactFileTooLarge,
@@ -61,7 +61,7 @@ func TestGenerateImageError(t *testing.T) {
 	for i := range testCases {
 		tc := testCases[i]
 		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
-			artifactID, err := d.GenerateImage(ctx, tc.multipartGenerateImage)
+			artifactID, err := d.GenerateArtifact(ctx, tc.multipartGenerateArtifact)
 
 			assert.Equal(t, artifactID, "")
 			assert.Error(t, err)
@@ -70,7 +70,7 @@ func TestGenerateImageError(t *testing.T) {
 	}
 }
 
-func TestGenerateImageArtifactIsNotUnique(t *testing.T) {
+func TestGenerateArtifactArtifactIsNotUnique(t *testing.T) {
 	db := mocks.DataStore{}
 	fs := &fs_mocks.FileStorage{}
 	d := NewDeployments(&db, fs, ArtifactContentType)
@@ -81,7 +81,7 @@ func TestGenerateImageArtifactIsNotUnique(t *testing.T) {
 		mock.AnythingOfType("[]string"),
 	).Return(false, nil)
 
-	multipartGenerateImage := &model.MultipartGenerateImageMsg{
+	multipartGenerateArtifact := &model.MultipartGenerateArtifactMsg{
 		Name:                  "name",
 		Description:           "description",
 		DeviceTypesCompatible: []string{"Beagle Bone"},
@@ -92,7 +92,7 @@ func TestGenerateImageArtifactIsNotUnique(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	artifactID, err := d.GenerateImage(ctx, multipartGenerateImage)
+	artifactID, err := d.GenerateArtifact(ctx, multipartGenerateArtifact)
 
 	assert.Equal(t, artifactID, "")
 	assert.Error(t, err)
@@ -101,7 +101,7 @@ func TestGenerateImageArtifactIsNotUnique(t *testing.T) {
 	db.AssertExpectations(t)
 }
 
-func TestGenerateImageErrorWhileCheckingIfArtifactIsNotUnique(t *testing.T) {
+func TestGenerateArtifactErrorWhileCheckingIfArtifactIsNotUnique(t *testing.T) {
 	db := mocks.DataStore{}
 	fs := &fs_mocks.FileStorage{}
 	d := NewDeployments(&db, fs, ArtifactContentType)
@@ -112,7 +112,7 @@ func TestGenerateImageErrorWhileCheckingIfArtifactIsNotUnique(t *testing.T) {
 		mock.AnythingOfType("[]string"),
 	).Return(false, errors.New("error"))
 
-	multipartGenerateImage := &model.MultipartGenerateImageMsg{
+	multipartGenerateArtifact := &model.MultipartGenerateArtifactMsg{
 		Name:                  "name",
 		Description:           "description",
 		DeviceTypesCompatible: []string{"Beagle Bone"},
@@ -123,7 +123,7 @@ func TestGenerateImageErrorWhileCheckingIfArtifactIsNotUnique(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	artifactID, err := d.GenerateImage(ctx, multipartGenerateImage)
+	artifactID, err := d.GenerateArtifact(ctx, multipartGenerateArtifact)
 
 	assert.Equal(t, artifactID, "")
 	assert.Error(t, err)
@@ -132,7 +132,7 @@ func TestGenerateImageErrorWhileCheckingIfArtifactIsNotUnique(t *testing.T) {
 	db.AssertExpectations(t)
 }
 
-func TestGenerateImageErrorWhileUploading(t *testing.T) {
+func TestGenerateArtifactErrorWhileUploading(t *testing.T) {
 	db := mocks.DataStore{}
 	fs := &fs_mocks.FileStorage{}
 	d := NewDeployments(&db, fs, ArtifactContentType)
@@ -151,7 +151,7 @@ func TestGenerateImageErrorWhileUploading(t *testing.T) {
 		mock.AnythingOfType("[]string"),
 	).Return(true, nil)
 
-	multipartGenerateImage := &model.MultipartGenerateImageMsg{
+	multipartGenerateArtifact := &model.MultipartGenerateArtifactMsg{
 		Name:                  "name",
 		Description:           "description",
 		DeviceTypesCompatible: []string{"Beagle Bone"},
@@ -162,7 +162,7 @@ func TestGenerateImageErrorWhileUploading(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	artifactID, err := d.GenerateImage(ctx, multipartGenerateImage)
+	artifactID, err := d.GenerateArtifact(ctx, multipartGenerateArtifact)
 
 	assert.Equal(t, artifactID, "")
 	assert.Error(t, err)
@@ -172,7 +172,7 @@ func TestGenerateImageErrorWhileUploading(t *testing.T) {
 	fs.AssertExpectations(t)
 }
 
-func TestGenerateImageErrorS3GetRequest(t *testing.T) {
+func TestGenerateArtifactErrorS3GetRequest(t *testing.T) {
 	db := mocks.DataStore{}
 	fs := &fs_mocks.FileStorage{}
 	d := NewDeployments(&db, fs, ArtifactContentType)
@@ -198,7 +198,7 @@ func TestGenerateImageErrorS3GetRequest(t *testing.T) {
 		mock.AnythingOfType("string"),
 	).Return(nil, errors.New("error get request"))
 
-	multipartGenerateImage := &model.MultipartGenerateImageMsg{
+	multipartGenerateArtifact := &model.MultipartGenerateArtifactMsg{
 		Name:                  "name",
 		Description:           "description",
 		DeviceTypesCompatible: []string{"Beagle Bone"},
@@ -209,7 +209,7 @@ func TestGenerateImageErrorS3GetRequest(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	artifactID, err := d.GenerateImage(ctx, multipartGenerateImage)
+	artifactID, err := d.GenerateArtifact(ctx, multipartGenerateArtifact)
 
 	assert.Equal(t, artifactID, "")
 	assert.Error(t, err)
@@ -219,7 +219,7 @@ func TestGenerateImageErrorS3GetRequest(t *testing.T) {
 	fs.AssertExpectations(t)
 }
 
-func TestGenerateImageErrorS3DeleteRequest(t *testing.T) {
+func TestGenerateArtifactErrorS3DeleteRequest(t *testing.T) {
 	db := mocks.DataStore{}
 	fs := &fs_mocks.FileStorage{}
 	d := NewDeployments(&db, fs, ArtifactContentType)
@@ -253,7 +253,7 @@ func TestGenerateImageErrorS3DeleteRequest(t *testing.T) {
 		mock.AnythingOfType("time.Duration"),
 	).Return(nil, errors.New("error delete request"))
 
-	multipartGenerateImage := &model.MultipartGenerateImageMsg{
+	multipartGenerateArtifact := &model.MultipartGenerateArtifactMsg{
 		Name:                  "name",
 		Description:           "description",
 		DeviceTypesCompatible: []string{"Beagle Bone"},
@@ -264,7 +264,7 @@ func TestGenerateImageErrorS3DeleteRequest(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	artifactID, err := d.GenerateImage(ctx, multipartGenerateImage)
+	artifactID, err := d.GenerateArtifact(ctx, multipartGenerateArtifact)
 
 	assert.Equal(t, artifactID, "")
 	assert.Error(t, err)
@@ -274,7 +274,7 @@ func TestGenerateImageErrorS3DeleteRequest(t *testing.T) {
 	fs.AssertExpectations(t)
 }
 
-func TestGenerateImageErrorWhileStartingWorkflow(t *testing.T) {
+func TestGenerateArtifactErrorWhileStartingWorkflow(t *testing.T) {
 	db := mocks.DataStore{}
 	fs := &fs_mocks.FileStorage{}
 	d := NewDeployments(&db, fs, ArtifactContentType)
@@ -328,7 +328,7 @@ func TestGenerateImageErrorWhileStartingWorkflow(t *testing.T) {
 		mock.AnythingOfType("[]string"),
 	).Return(true, nil)
 
-	multipartGenerateImage := &model.MultipartGenerateImageMsg{
+	multipartGenerateArtifact := &model.MultipartGenerateArtifactMsg{
 		Name:                  "name",
 		Description:           "description",
 		DeviceTypesCompatible: []string{"Beagle Bone"},
@@ -339,7 +339,7 @@ func TestGenerateImageErrorWhileStartingWorkflow(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	artifactID, err := d.GenerateImage(ctx, multipartGenerateImage)
+	artifactID, err := d.GenerateArtifact(ctx, multipartGenerateArtifact)
 
 	assert.Equal(t, artifactID, "")
 	assert.Error(t, err)
@@ -350,7 +350,7 @@ func TestGenerateImageErrorWhileStartingWorkflow(t *testing.T) {
 	mockHTTPClient.AssertExpectations(t)
 }
 
-func TestGenerateImageErrorWhileStartingWorkflowAndFailsWhenCleaningUp(t *testing.T) {
+func TestGenerateArtifactErrorWhileStartingWorkflowAndFailsWhenCleaningUp(t *testing.T) {
 	db := mocks.DataStore{}
 	fs := &fs_mocks.FileStorage{}
 	d := NewDeployments(&db, fs, ArtifactContentType)
@@ -404,7 +404,7 @@ func TestGenerateImageErrorWhileStartingWorkflowAndFailsWhenCleaningUp(t *testin
 		mock.AnythingOfType("[]string"),
 	).Return(true, nil)
 
-	multipartGenerateImage := &model.MultipartGenerateImageMsg{
+	multipartGenerateArtifact := &model.MultipartGenerateArtifactMsg{
 		Name:                  "name",
 		Description:           "description",
 		DeviceTypesCompatible: []string{"Beagle Bone"},
@@ -415,7 +415,7 @@ func TestGenerateImageErrorWhileStartingWorkflowAndFailsWhenCleaningUp(t *testin
 	}
 
 	ctx := context.Background()
-	artifactID, err := d.GenerateImage(ctx, multipartGenerateImage)
+	artifactID, err := d.GenerateArtifact(ctx, multipartGenerateArtifact)
 
 	assert.Equal(t, artifactID, "")
 	assert.Error(t, err)
@@ -426,7 +426,7 @@ func TestGenerateImageErrorWhileStartingWorkflowAndFailsWhenCleaningUp(t *testin
 	mockHTTPClient.AssertExpectations(t)
 }
 
-func TestGenerateImageSuccessful(t *testing.T) {
+func TestGenerateArtifactSuccessful(t *testing.T) {
 	db := mocks.DataStore{}
 	fs := &fs_mocks.FileStorage{}
 	d := NewDeployments(&db, fs, ArtifactContentType)
@@ -438,22 +438,22 @@ func TestGenerateImageSuccessful(t *testing.T) {
 			if err != nil {
 				return false
 			}
-			multipartGenerateImage := &model.MultipartGenerateImageMsg{}
-			err = json.Unmarshal(b, &multipartGenerateImage)
+			multipartGenerateArtifact := &model.MultipartGenerateArtifactMsg{}
+			err = json.Unmarshal(b, &multipartGenerateArtifact)
 			if err != nil {
 				return false
 			}
-			assert.Equal(t, "name", multipartGenerateImage.Name)
-			assert.Equal(t, "description", multipartGenerateImage.Description)
-			assert.Equal(t, int64(10), multipartGenerateImage.Size)
-			assert.Len(t, multipartGenerateImage.DeviceTypesCompatible, 1)
-			assert.Equal(t, "Beagle Bone", multipartGenerateImage.DeviceTypesCompatible[0])
-			assert.Equal(t, "single_file", multipartGenerateImage.Type)
-			assert.Equal(t, "args", multipartGenerateImage.Args)
-			assert.Empty(t, multipartGenerateImage.TenantID)
-			assert.NotEmpty(t, multipartGenerateImage.ArtifactID)
-			assert.Equal(t, "GET", multipartGenerateImage.GetArtifactURI)
-			assert.Equal(t, "DELETE", multipartGenerateImage.DeleteArtifactURI)
+			assert.Equal(t, "name", multipartGenerateArtifact.Name)
+			assert.Equal(t, "description", multipartGenerateArtifact.Description)
+			assert.Equal(t, int64(10), multipartGenerateArtifact.Size)
+			assert.Len(t, multipartGenerateArtifact.DeviceTypesCompatible, 1)
+			assert.Equal(t, "Beagle Bone", multipartGenerateArtifact.DeviceTypesCompatible[0])
+			assert.Equal(t, "single_file", multipartGenerateArtifact.Type)
+			assert.Equal(t, "args", multipartGenerateArtifact.Args)
+			assert.Empty(t, multipartGenerateArtifact.TenantID)
+			assert.NotEmpty(t, multipartGenerateArtifact.ArtifactID)
+			assert.Equal(t, "GET", multipartGenerateArtifact.GetArtifactURI)
+			assert.Equal(t, "DELETE", multipartGenerateArtifact.DeleteArtifactURI)
 			return true
 		}),
 	).Return(&http.Response{
@@ -497,7 +497,7 @@ func TestGenerateImageSuccessful(t *testing.T) {
 		mock.AnythingOfType("[]string"),
 	).Return(true, nil)
 
-	multipartGenerateImage := &model.MultipartGenerateImageMsg{
+	multipartGenerateArtifact := &model.MultipartGenerateArtifactMsg{
 		Name:                  "name",
 		Description:           "description",
 		DeviceTypesCompatible: []string{"Beagle Bone"},
@@ -508,7 +508,7 @@ func TestGenerateImageSuccessful(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	artifactID, err := d.GenerateImage(ctx, multipartGenerateImage)
+	artifactID, err := d.GenerateArtifact(ctx, multipartGenerateArtifact)
 
 	assert.NotEqual(t, artifactID, "")
 	assert.Nil(t, err)
@@ -518,7 +518,7 @@ func TestGenerateImageSuccessful(t *testing.T) {
 	mockHTTPClient.AssertExpectations(t)
 }
 
-func TestGenerateImageSuccessfulWithTenant(t *testing.T) {
+func TestGenerateArtifactSuccessfulWithTenant(t *testing.T) {
 	db := mocks.DataStore{}
 	fs := &fs_mocks.FileStorage{}
 	d := NewDeployments(&db, fs, ArtifactContentType)
@@ -530,22 +530,22 @@ func TestGenerateImageSuccessfulWithTenant(t *testing.T) {
 			if err != nil {
 				return false
 			}
-			multipartGenerateImage := &model.MultipartGenerateImageMsg{}
-			err = json.Unmarshal(b, &multipartGenerateImage)
+			multipartGenerateArtifact := &model.MultipartGenerateArtifactMsg{}
+			err = json.Unmarshal(b, &multipartGenerateArtifact)
 			if err != nil {
 				return false
 			}
-			assert.Equal(t, "name", multipartGenerateImage.Name)
-			assert.Equal(t, "description", multipartGenerateImage.Description)
-			assert.Equal(t, int64(10), multipartGenerateImage.Size)
-			assert.Len(t, multipartGenerateImage.DeviceTypesCompatible, 1)
-			assert.Equal(t, "Beagle Bone", multipartGenerateImage.DeviceTypesCompatible[0])
-			assert.Equal(t, "single_file", multipartGenerateImage.Type)
-			assert.Equal(t, "args", multipartGenerateImage.Args)
-			assert.Equal(t, "tenant_id", multipartGenerateImage.TenantID)
-			assert.NotEmpty(t, multipartGenerateImage.ArtifactID)
-			assert.Equal(t, "GET", multipartGenerateImage.GetArtifactURI)
-			assert.Equal(t, "DELETE", multipartGenerateImage.DeleteArtifactURI)
+			assert.Equal(t, "name", multipartGenerateArtifact.Name)
+			assert.Equal(t, "description", multipartGenerateArtifact.Description)
+			assert.Equal(t, int64(10), multipartGenerateArtifact.Size)
+			assert.Len(t, multipartGenerateArtifact.DeviceTypesCompatible, 1)
+			assert.Equal(t, "Beagle Bone", multipartGenerateArtifact.DeviceTypesCompatible[0])
+			assert.Equal(t, "single_file", multipartGenerateArtifact.Type)
+			assert.Equal(t, "args", multipartGenerateArtifact.Args)
+			assert.Equal(t, "tenant_id", multipartGenerateArtifact.TenantID)
+			assert.NotEmpty(t, multipartGenerateArtifact.ArtifactID)
+			assert.Equal(t, "GET", multipartGenerateArtifact.GetArtifactURI)
+			assert.Equal(t, "DELETE", multipartGenerateArtifact.DeleteArtifactURI)
 			return true
 		}),
 	).Return(&http.Response{
@@ -589,7 +589,7 @@ func TestGenerateImageSuccessfulWithTenant(t *testing.T) {
 		mock.AnythingOfType("[]string"),
 	).Return(true, nil)
 
-	multipartGenerateImage := &model.MultipartGenerateImageMsg{
+	multipartGenerateArtifact := &model.MultipartGenerateArtifactMsg{
 		Name:                  "name",
 		Description:           "description",
 		DeviceTypesCompatible: []string{"Beagle Bone"},
@@ -602,7 +602,7 @@ func TestGenerateImageSuccessfulWithTenant(t *testing.T) {
 	ctx := context.Background()
 	identityObject := &identity.Identity{Tenant: "tenant_id"}
 	ctxWithIdentity := identity.WithContext(ctx, identityObject)
-	artifactID, err := d.GenerateImage(ctxWithIdentity, multipartGenerateImage)
+	artifactID, err := d.GenerateArtifact(ctxWithIdentity, multipartGenerateArtifact)
 
 	assert.NotEqual(t, artifactID, "")
 	assert.Nil(t, err)

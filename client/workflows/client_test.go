@@ -41,7 +41,7 @@ func TestGenerateArtifactFails(t *testing.T) {
 	workflowsClient := NewClient()
 	workflowsClient.SetHTTPClient(mockHTTPClient)
 
-	multipartGenerateImage := &model.MultipartGenerateImageMsg{
+	multipartGenerateArtifact := &model.MultipartGenerateArtifactMsg{
 		Name:                  "name",
 		Description:           "description",
 		DeviceTypesCompatible: []string{"Beagle Bone"},
@@ -54,7 +54,7 @@ func TestGenerateArtifactFails(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	err := workflowsClient.StartGenerateArtifact(ctx, multipartGenerateImage)
+	err := workflowsClient.StartGenerateArtifact(ctx, multipartGenerateArtifact)
 	assert.Error(t, err)
 	assert.EqualError(t, err, "failed to start workflow: generate_artifact")
 
@@ -69,20 +69,20 @@ func TestGenerateArtifactSuccessful(t *testing.T) {
 			if err != nil {
 				return false
 			}
-			multipartGenerateImage := &model.MultipartGenerateImageMsg{}
-			err = json.Unmarshal(b, &multipartGenerateImage)
+			multipartGenerateArtifact := &model.MultipartGenerateArtifactMsg{}
+			err = json.Unmarshal(b, &multipartGenerateArtifact)
 			if err != nil {
 				return false
 			}
-			assert.Equal(t, "name", multipartGenerateImage.Name)
-			assert.Equal(t, "description", multipartGenerateImage.Description)
-			assert.Equal(t, int64(10), multipartGenerateImage.Size)
-			assert.Len(t, multipartGenerateImage.DeviceTypesCompatible, 1)
-			assert.Equal(t, "Beagle Bone", multipartGenerateImage.DeviceTypesCompatible[0])
-			assert.Equal(t, "single_file", multipartGenerateImage.Type)
-			assert.Equal(t, "args", multipartGenerateImage.Args)
-			assert.Equal(t, "tenant_id", multipartGenerateImage.TenantID)
-			assert.Equal(t, "artifact_id", multipartGenerateImage.ArtifactID)
+			assert.Equal(t, "name", multipartGenerateArtifact.Name)
+			assert.Equal(t, "description", multipartGenerateArtifact.Description)
+			assert.Equal(t, int64(10), multipartGenerateArtifact.Size)
+			assert.Len(t, multipartGenerateArtifact.DeviceTypesCompatible, 1)
+			assert.Equal(t, "Beagle Bone", multipartGenerateArtifact.DeviceTypesCompatible[0])
+			assert.Equal(t, "single_file", multipartGenerateArtifact.Type)
+			assert.Equal(t, "args", multipartGenerateArtifact.Args)
+			assert.Equal(t, "tenant_id", multipartGenerateArtifact.TenantID)
+			assert.Equal(t, "artifact_id", multipartGenerateArtifact.ArtifactID)
 			return true
 		}),
 	).Return(&http.Response{
@@ -93,7 +93,7 @@ func TestGenerateArtifactSuccessful(t *testing.T) {
 	workflowsClient := NewClient()
 	workflowsClient.SetHTTPClient(mockHTTPClient)
 
-	multipartGenerateImage := &model.MultipartGenerateImageMsg{
+	multipartGenerateArtifact := &model.MultipartGenerateArtifactMsg{
 		Name:                  "name",
 		Description:           "description",
 		DeviceTypesCompatible: []string{"Beagle Bone"},
@@ -106,7 +106,7 @@ func TestGenerateArtifactSuccessful(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	err := workflowsClient.StartGenerateArtifact(ctx, multipartGenerateImage)
+	err := workflowsClient.StartGenerateArtifact(ctx, multipartGenerateArtifact)
 	assert.Nil(t, err)
 
 	mockHTTPClient.AssertExpectations(t)

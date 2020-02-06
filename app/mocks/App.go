@@ -79,20 +79,20 @@ func (_m *App) CreateImage(ctx context.Context, multipartUploadMsg *model.Multip
 	return r0, r1
 }
 
-// GenerateImage provides a mock function with given fields, ctx, multipartGenerateImageMsg
-func (_m *App) GenerateImage(ctx context.Context, multipartGenerateImageMsg *model.MultipartGenerateImageMsg) (string, error) {
-	ret := _m.Called(ctx, multipartGenerateImageMsg)
+// GenerateArtifact provides a mock function with given fields, ctx, multipartGenerateArtifactMsg
+func (_m *App) GenerateArtifact(ctx context.Context, multipartGenerateArtifactMsg *model.MultipartGenerateArtifactMsg) (string, error) {
+	ret := _m.Called(ctx, multipartGenerateArtifactMsg)
 
 	var r0 string
-	if rf, ok := ret.Get(0).(func(context.Context, *model.MultipartGenerateImageMsg) string); ok {
-		r0 = rf(ctx, multipartGenerateImageMsg)
+	if rf, ok := ret.Get(0).(func(context.Context, *model.MultipartGenerateArtifactMsg) string); ok {
+		r0 = rf(ctx, multipartGenerateArtifactMsg)
 	} else {
 		r0 = ret.Get(0).(string)
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, *model.MultipartGenerateImageMsg) error); ok {
-		r1 = rf(ctx, multipartGenerateImageMsg)
+	if rf, ok := ret.Get(1).(func(context.Context, *model.MultipartGenerateArtifactMsg) error); ok {
+		r1 = rf(ctx, multipartGenerateArtifactMsg)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -152,18 +152,18 @@ func (_m *App) DownloadLink(ctx context.Context, imageID string, expire time.Dur
 }
 
 // EditImage provides a mock function with given fields: ctx, id, constructorData
-func (_m *App) EditImage(ctx context.Context, id string, constructorData *model.SoftwareImageMetaConstructor) (bool, error) {
+func (_m *App) EditImage(ctx context.Context, id string, constructorData *model.ReleaseMeta) (bool, error) {
 	ret := _m.Called(ctx, id, constructorData)
 
 	var r0 bool
-	if rf, ok := ret.Get(0).(func(context.Context, string, *model.SoftwareImageMetaConstructor) bool); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, string, *model.ReleaseMeta) bool); ok {
 		r0 = rf(ctx, id, constructorData)
 	} else {
 		r0 = ret.Get(0).(bool)
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, string, *model.SoftwareImageMetaConstructor) error); ok {
+	if rf, ok := ret.Get(1).(func(context.Context, string, *model.ReleaseMeta) error); ok {
 		r1 = rf(ctx, id, constructorData)
 	} else {
 		r1 = ret.Error(1)
@@ -287,16 +287,16 @@ func (_m *App) GetDeviceStatusesForDeployment(ctx context.Context, deploymentID 
 	return r0, r1
 }
 
-// GetImage provides a mock function with given fields: ctx, id
-func (_m *App) GetImage(ctx context.Context, id string) (*model.SoftwareImage, error) {
+// GetArtifact provides a mock function with given fields: ctx, id
+func (_m *App) GetArtifact(ctx context.Context, id string) (*model.Artifact, error) {
 	ret := _m.Called(ctx, id)
 
-	var r0 *model.SoftwareImage
-	if rf, ok := ret.Get(0).(func(context.Context, string) *model.SoftwareImage); ok {
+	var r0 *model.Artifact
+	if rf, ok := ret.Get(0).(func(context.Context, string) *model.Artifact); ok {
 		r0 = rf(ctx, id)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*model.SoftwareImage)
+			r0 = ret.Get(0).(*model.Artifact)
 		}
 	}
 
@@ -376,15 +376,15 @@ func (_m *App) IsDeploymentFinished(ctx context.Context, deploymentID string) (b
 }
 
 // ListImages provides a mock function with given fields: ctx, filters
-func (_m *App) ListImages(ctx context.Context, filters map[string]string) ([]*model.SoftwareImage, error) {
+func (_m *App) ListImages(ctx context.Context, filters map[string]string) ([]*model.Artifact, error) {
 	ret := _m.Called(ctx, filters)
 
-	var r0 []*model.SoftwareImage
-	if rf, ok := ret.Get(0).(func(context.Context, map[string]string) []*model.SoftwareImage); ok {
+	var r0 []*model.Artifact
+	if rf, ok := ret.Get(0).(func(context.Context, map[string]string) []*model.Artifact); ok {
 		r0 = rf(ctx, filters)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]*model.SoftwareImage)
+			r0 = ret.Get(0).([]*model.Artifact)
 		}
 	}
 

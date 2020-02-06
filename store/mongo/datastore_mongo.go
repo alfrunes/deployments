@@ -184,9 +184,9 @@ var (
 	}
 	UniqueNameVersionIndex = mongo.IndexModel{
 		Keys: bson.D{
-			{Key: StorageKeySoftwareImageName,
+			{Key: StorageKeyArtifactName,
 				Value: 1},
-			{Key: StorageKeySoftwareImageDeviceTypes,
+			{Key: StorageKeyArtifactDeviceTypes,
 				Value: 1},
 		},
 		Options: &mopts.IndexOptions{
@@ -199,11 +199,11 @@ var (
 
 // Errors
 var (
-	ErrSoftwareImagesStorageInvalidID           = errors.New("Invalid id")
-	ErrSoftwareImagesStorageInvalidArtifactName = errors.New("Invalid artifact name")
-	ErrSoftwareImagesStorageInvalidName         = errors.New("Invalid name")
-	ErrSoftwareImagesStorageInvalidDeviceType   = errors.New("Invalid device type")
-	ErrSoftwareImagesStorageInvalidImage        = errors.New("Invalid image")
+	ErrArtifactsStorageInvalidID           = errors.New("Invalid id")
+	ErrArtifactsStorageInvalidArtifactName = errors.New("Invalid artifact name")
+	ErrArtifactsStorageInvalidName         = errors.New("Invalid name")
+	ErrArtifactsStorageInvalidDeviceType   = errors.New("Invalid device type")
+	ErrArtifactsStorageInvalidImage        = errors.New("Invalid image")
 
 	ErrStorageInvalidDeviceDeployment = errors.New("Invalid device deployment")
 
@@ -220,14 +220,14 @@ var (
 // Database keys
 const (
 	// Need to be kept in sync with structure filed names
-	StorageKeySoftwareImageDeviceTypes = "meta_artifact.device_types_compatible"
-	StorageKeySoftwareImageName        = "meta_artifact.name"
-	StorageKeySoftwareImageId          = "_id"
+	StorageKeyArtifactDeviceTypes = "meta_artifact.device_types_compatible"
+	StorageKeyArtifactName        = "meta_artifact.name"
+	StorageKeyArtifactId          = "_id"
 
 	StorageKeyDeviceDeploymentLogMessages = "messages"
 
 	StorageKeyDeviceDeploymentAssignedImage   = "image"
-	StorageKeyDeviceDeploymentAssignedImageId = StorageKeyDeviceDeploymentAssignedImage + "." + StorageKeySoftwareImageId
+	StorageKeyDeviceDeploymentAssignedImageId = StorageKeyDeviceDeploymentAssignedImage + "." + StorageKeyArtifactId
 	StorageKeyDeviceDeploymentDeviceId        = "deviceid"
 	StorageKeyDeviceDeploymentStatus          = "status"
 	StorageKeyDeviceDeploymentSubState        = "substate"
@@ -316,9 +316,9 @@ func (db *DataStoreMongo) GetReleases(ctx context.Context, filt *model.ReleaseFi
 
 	group := bson.D{
 		{Key: "$group", Value: bson.D{
-			{Key: "_id", Value: "$" + StorageKeySoftwareImageName},
+			{Key: "_id", Value: "$" + StorageKeyArtifactName},
 			{Key: "name", Value: bson.M{
-				"$first": "$" + StorageKeySoftwareImageName}},
+				"$first": "$" + StorageKeyArtifactName}},
 			{Key: "artifacts", Value: bson.M{"$push": "$$ROOT"}}},
 		},
 	}
@@ -366,7 +366,7 @@ func (db *DataStoreMongo) matchFromFilt(f *model.ReleaseFilter) bson.D {
 
 	return bson.D{
 		{Key: "$match", Value: bson.M{
-			StorageKeySoftwareImageName: f.Name}},
+			StorageKeyArtifactName: f.Name}},
 	}
 }
 
@@ -418,7 +418,7 @@ func (db *DataStoreMongo) Exists(ctx context.Context, id string) (bool, error) {
 	var result interface{}
 
 	if govalidator.IsNull(id) {
-		return false, ErrSoftwareImagesStorageInvalidID
+		return false, ErrArtifactsStorageInvalidID
 	}
 
 	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
@@ -435,10 +435,10 @@ func (db *DataStoreMongo) Exists(ctx context.Context, id string) (bool, error) {
 	return true, nil
 }
 
-// Update provided SoftwareImage
+// Update provided Artifact
 // Return false if not found
 func (db *DataStoreMongo) Update(ctx context.Context,
-	image *model.SoftwareImage) (bool, error) {
+	image *model.Artifact) (bool, error) {
 
 	if err := image.Validate(); err != nil {
 		return false, err
@@ -448,9 +448,9 @@ func (db *DataStoreMongo) Update(ctx context.Context,
 	collImg := database.Collection(CollectionImages)
 
 	image.SetModified(time.Now())
-	var result model.SoftwareImage
+	var result model.Artifact
 	if err := collImg.FindOneAndUpdate(
-		ctx, bson.M{"_id": image.Id}, image).
+		ctx, bson.M{"_id": image.ID}, image).
 		Decode(&result); err != nil {
 		if err == mongo.ErrNoDocuments {
 			return false, nil
@@ -463,27 +463,27 @@ func (db *DataStoreMongo) Update(ctx context.Context,
 
 // ImageByNameAndDeviceType finds image with specified application name and target device type
 func (db *DataStoreMongo) ImageByNameAndDeviceType(ctx context.Context,
-	name, deviceType string) (*model.SoftwareImage, error) {
+	name, deviceType string) (*model.Artifact, error) {
 
 	if govalidator.IsNull(name) {
-		return nil, ErrSoftwareImagesStorageInvalidName
+		return nil, ErrArtifactsStorageInvalidName
 	}
 
 	if govalidator.IsNull(deviceType) {
-		return nil, ErrSoftwareImagesStorageInvalidDeviceType
+		return nil, ErrArtifactsStorageInvalidDeviceType
 	}
 
 	// equal to device type & software version (application name + version)
 	query := bson.M{
-		StorageKeySoftwareImageDeviceTypes: deviceType,
-		StorageKeySoftwareImageName:        name,
+		StorageKeyArtifactDeviceTypes: deviceType,
+		StorageKeyArtifactName:        name,
 	}
 	dbName := mstore.DbFromContext(ctx, DatabaseName)
 	database := db.client.Database(dbName)
 	collImg := database.Collection(CollectionImages)
 
 	// Both we lookup unique object, should be one or none.
-	var image model.SoftwareImage
+	var image model.Artifact
 	if err := collImg.FindOne(ctx, query).Decode(&image); err != nil {
 		if err == mongo.ErrNoDocuments {
 			return nil, nil
@@ -496,26 +496,26 @@ func (db *DataStoreMongo) ImageByNameAndDeviceType(ctx context.Context,
 
 // ImageByIdsAndDeviceType finds image with id from ids and target device type
 func (db *DataStoreMongo) ImageByIdsAndDeviceType(ctx context.Context,
-	ids []string, deviceType string) (*model.SoftwareImage, error) {
+	ids []string, deviceType string) (*model.Artifact, error) {
 
 	if govalidator.IsNull(deviceType) {
-		return nil, ErrSoftwareImagesStorageInvalidDeviceType
+		return nil, ErrArtifactsStorageInvalidDeviceType
 	}
 
 	if len(ids) == 0 {
-		return nil, ErrSoftwareImagesStorageInvalidID
+		return nil, ErrArtifactsStorageInvalidID
 	}
 
 	query := bson.D{
-		{Key: StorageKeySoftwareImageDeviceTypes, Value: deviceType},
-		{Key: StorageKeySoftwareImageId, Value: bson.M{"$in": ids}},
+		{Key: StorageKeyArtifactDeviceTypes, Value: deviceType},
+		{Key: StorageKeyArtifactId, Value: bson.M{"$in": ids}},
 	}
 
 	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
 	collImg := database.Collection(CollectionImages)
 
 	// Both we lookup unique object, should be one or none.
-	var image model.SoftwareImage
+	var image model.Artifact
 	if err := collImg.FindOne(ctx, query).Decode(&image); err != nil {
 		if err == mongo.ErrNoDocuments {
 			return nil, nil
@@ -528,17 +528,17 @@ func (db *DataStoreMongo) ImageByIdsAndDeviceType(ctx context.Context,
 
 // ImagesByName finds images with specified artifact name
 func (db *DataStoreMongo) ImagesByName(
-	ctx context.Context, name string) ([]*model.SoftwareImage, error) {
+	ctx context.Context, name string) ([]*model.Artifact, error) {
 
-	var images []*model.SoftwareImage
+	var images []*model.Artifact
 
 	if govalidator.IsNull(name) {
-		return nil, ErrSoftwareImagesStorageInvalidName
+		return nil, ErrArtifactsStorageInvalidName
 	}
 
 	// equal to artifact name
 	query := bson.M{
-		StorageKeySoftwareImageName: name,
+		StorageKeyArtifactName: name,
 	}
 
 	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
@@ -556,10 +556,10 @@ func (db *DataStoreMongo) ImagesByName(
 }
 
 // Insert persists object
-func (db *DataStoreMongo) InsertImage(ctx context.Context, image *model.SoftwareImage) error {
+func (db *DataStoreMongo) InsertImage(ctx context.Context, image *model.Artifact) error {
 
 	if image == nil {
-		return ErrSoftwareImagesStorageInvalidImage
+		return ErrArtifactsStorageInvalidImage
 	}
 
 	if err := image.Validate(); err != nil {
@@ -583,16 +583,16 @@ func (db *DataStoreMongo) InsertImage(ctx context.Context, image *model.Software
 
 // FindImageByID search storage for image with ID, returns nil if not found
 func (db *DataStoreMongo) FindImageByID(ctx context.Context,
-	id string) (*model.SoftwareImage, error) {
+	id string) (*model.Artifact, error) {
 
 	if govalidator.IsNull(id) {
-		return nil, ErrSoftwareImagesStorageInvalidID
+		return nil, ErrArtifactsStorageInvalidID
 	}
 
 	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
 	collImg := database.Collection(CollectionImages)
 
-	var image model.SoftwareImage
+	var image model.Artifact
 	if err := collImg.FindOne(ctx, bson.M{"_id": id}).
 		Decode(&image); err != nil {
 		if err == mongo.ErrNoDocuments {
@@ -613,7 +613,7 @@ func (db *DataStoreMongo) IsArtifactUnique(ctx context.Context,
 	artifactName string, deviceTypesCompatible []string) (bool, error) {
 
 	if govalidator.IsNull(artifactName) {
-		return false, ErrSoftwareImagesStorageInvalidArtifactName
+		return false, ErrArtifactsStorageInvalidArtifactName
 	}
 
 	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
@@ -622,16 +622,16 @@ func (db *DataStoreMongo) IsArtifactUnique(ctx context.Context,
 	query := bson.D{
 		{Key: "$and", Value: []bson.M{
 			{
-				StorageKeySoftwareImageName: artifactName,
+				StorageKeyArtifactName: artifactName,
 			},
 			{
-				StorageKeySoftwareImageDeviceTypes: bson.M{
+				StorageKeyArtifactDeviceTypes: bson.M{
 					"$in": deviceTypesCompatible},
 			},
 		}},
 	}
 
-	var image *model.SoftwareImage
+	var image *model.Artifact
 	if err := collImg.FindOne(ctx, query).Decode(&image); err != nil {
 		if err == mongo.ErrNoDocuments {
 			return true, nil
@@ -647,7 +647,7 @@ func (db *DataStoreMongo) IsArtifactUnique(ctx context.Context,
 func (db *DataStoreMongo) DeleteImage(ctx context.Context, id string) error {
 
 	if govalidator.IsNull(id) {
-		return ErrSoftwareImagesStorageInvalidID
+		return ErrArtifactsStorageInvalidID
 	}
 
 	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
@@ -664,7 +664,7 @@ func (db *DataStoreMongo) DeleteImage(ctx context.Context, id string) error {
 }
 
 // FindAll lists all images
-func (db *DataStoreMongo) FindAll(ctx context.Context) ([]*model.SoftwareImage, error) {
+func (db *DataStoreMongo) FindAll(ctx context.Context) ([]*model.Artifact, error) {
 
 	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
 	collImg := database.Collection(CollectionImages)
@@ -674,7 +674,7 @@ func (db *DataStoreMongo) FindAll(ctx context.Context) ([]*model.SoftwareImage, 
 	}
 
 	// NOTE: cursor.All closes the cursor before returning
-	var images []*model.SoftwareImage
+	var images []*model.Artifact
 	if err := cursor.All(ctx, &images); err != nil {
 		if err == mongo.ErrNoDocuments {
 			return nil, nil
@@ -973,7 +973,7 @@ func (db *DataStoreMongo) UpdateDeviceDeploymentLogAvailability(ctx context.Cont
 
 // AssignArtifact assigns artifact to the device deployment
 func (db *DataStoreMongo) AssignArtifact(ctx context.Context,
-	deviceID string, deploymentID string, artifact *model.SoftwareImage) error {
+	deviceID string, deploymentID string, artifact *model.Artifact) error {
 
 	// Verify ID formatting
 	if govalidator.IsNull(deviceID) ||

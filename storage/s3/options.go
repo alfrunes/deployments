@@ -19,6 +19,7 @@ import (
 	"crypto/tls"
 	"net/http"
 	"net/textproto"
+	"net/url"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -59,6 +60,9 @@ type storageSettings struct {
 	ExternalURI *string
 	// URI is the URI for the s3 API.
 	URI *string
+	// ProxyURI is used for rewriting presigned requests, pointing the
+	// requests to the proxy URL instead of the direct URL to s3.
+	ProxyURI *url.URL
 
 	// ForcePathStyle encodes bucket in the API path.
 	ForcePathStyle bool
@@ -156,6 +160,9 @@ func (s *storageSettings) patch(setting *storageSettings) *storageSettings {
 	if setting.URI != nil {
 		s.URI = setting.URI
 	}
+	if setting.ProxyURI != nil {
+		s.ProxyURI = setting.ProxyURI
+	}
 	if setting.ForcePathStyle != s.ForcePathStyle {
 		s.ForcePathStyle = setting.ForcePathStyle
 	}
@@ -163,6 +170,26 @@ func (s *storageSettings) patch(setting *storageSettings) *storageSettings {
 		s.UseAccelerate = setting.UseAccelerate
 	}
 	return s
+}
+
+func (s storageSettings) RewriteLink(link *model.Link) (*model.Link, error) {
+	if s.ProxyURI == nil {
+		return link, nil
+	}
+	uri, err := url.Parse(link.Uri)
+	if err != nil {
+		return link, err
+	}
+	new := *s.ProxyURI
+	new.JoinPath(uri.Path)
+	q := new.Query()
+	for key, value := range uri.Query() {
+		q[key] = value
+	}
+	new.RawQuery = q.Encode()
+	new.Fragment = uri.Fragment
+	link.Uri = new.String()
+	return link, nil
 }
 
 type Options struct {
@@ -258,6 +285,11 @@ func (opts *Options) SetExternalURI(externalURI string) *Options {
 
 func (opts *Options) SetURI(URI string) *Options {
 	opts.URI = &URI
+	return opts
+}
+
+func (opts *Options) SetProxyURI(proxyURI *url.URL) *Options {
+	opts.ProxyURI = proxyURI
 	return opts
 }
 

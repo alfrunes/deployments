@@ -17,6 +17,7 @@ package azblob
 import (
 	"context"
 	"errors"
+	"net/url"
 	"strings"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
@@ -29,18 +30,41 @@ var (
 	ErrConnStrNoKey  = errors.New("connection string does not contain an account key")
 )
 
-func (c *client) credentialsFromContext(
+func (c *client) signParamsFromContext(
 	ctx context.Context,
-) (creds *azblob.SharedKeyCredential, err error) {
+) (creds *azblob.SharedKeyCredential, proxyURL *url.URL, err error) {
 	creds = c.credentials
+	proxyURL = c.proxyURL
 	if settings, _ := storage.SettingsFromContext(ctx); settings != nil {
 		if settings.ConnectionString != nil {
 			creds, err = keyFromConnString(*settings.ConnectionString)
 		} else {
 			creds, err = azblob.NewSharedKeyCredential(settings.Key, settings.Secret)
 		}
+		if err == nil && settings.ProxyURI != nil {
+			proxyURL, err = url.Parse(*settings.ProxyURI)
+		}
 	}
-	return creds, err
+	return creds, proxyURL, err
+}
+
+func applyProxyURL(signURL string, proxy *url.URL) (string, error) {
+	if proxy == nil {
+		return signURL, nil
+	}
+	old, err := url.Parse(signURL)
+	if err != nil {
+		return signURL, err
+	}
+	new := *proxy
+	new.JoinPath(old.Path)
+	q := new.Query()
+	for key, value := range old.Query() {
+		q[key] = value
+	}
+	new.RawQuery = q.Encode()
+	new.Fragment = old.Fragment
+	return new.String(), nil
 }
 
 func connStringAttr(cs, key string) (string, bool) {

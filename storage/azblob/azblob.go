@@ -46,6 +46,7 @@ type client struct {
 	DefaultClient *container.Client
 	credentials   *azblob.SharedKeyCredential
 	contentType   *string
+	proxyURL      *url.URL
 	bufferSize    int64
 }
 
@@ -381,7 +382,7 @@ func (c *client) GetRequest(
 	// HACK: We cannot use BlockBlobClient.GetSASToken because the API does
 	// not expose the required parameters.
 	urlParts, _ := blob.ParseURL(bc.URL())
-	sk, err := c.credentialsFromContext(ctx)
+	sk, proxyURL, err := c.signParamsFromContext(ctx)
 	if err != nil {
 		return nil, OpError{
 			Op:      OpGetRequest,
@@ -420,6 +421,14 @@ func (c *client) GetRequest(
 		return nil, OpError{
 			Op:      OpGetRequest,
 			Message: "failed to create pre-signed URL",
+			Reason:  err,
+		}
+	}
+	uri, err = applyProxyURL(uri, proxyURL)
+	if err != nil {
+		return nil, OpError{
+			Op:      OpGetRequest,
+			Message: "failed to apply proxy URL",
 			Reason:  err,
 		}
 	}

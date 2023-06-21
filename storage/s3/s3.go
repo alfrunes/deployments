@@ -555,11 +555,15 @@ func (s *SimpleStorageService) PutRequest(
 		signDate = date
 	}
 
-	return &model.Link{
+	link := &model.Link{
 		Uri:    req.URL,
 		Expire: signDate.Add(expireAfter),
 		Method: http.MethodPut,
-	}, nil
+	}
+	if opts.ProxyURI != nil {
+		link, err = opts.RewriteLink(link)
+	}
+	return link, err
 }
 
 // GetRequest duration is limited to 7 days (AWS limitation)
@@ -605,11 +609,15 @@ func (s *SimpleStorageService) GetRequest(
 		signDate = date
 	}
 
-	return &model.Link{
+	link := &model.Link{
 		Uri:    req.URL,
 		Expire: signDate.Add(expireAfter),
 		Method: http.MethodGet,
-	}, nil
+	}
+	if opts.ProxyURI != nil {
+		link, err = opts.RewriteLink(link)
+	}
+	return link, err
 }
 
 // DeleteRequest returns a presigned deletion request
@@ -643,12 +651,15 @@ func (s *SimpleStorageService) DeleteRequest(
 	); err == nil {
 		signDate = date
 	}
-
-	return &model.Link{
+	link := &model.Link{
 		Uri:    req.URL,
 		Expire: signDate.Add(expireAfter),
 		Method: http.MethodDelete,
-	}, nil
+	}
+	if opts.ProxyURI != nil {
+		link, err = opts.RewriteLink(link)
+	}
+	return link, err
 }
 
 // presign requests are limited to 7 days

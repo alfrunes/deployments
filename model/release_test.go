@@ -61,6 +61,10 @@ func TestReleaseTags(t *testing.T) {
 
 		err = json.Unmarshal([]byte(`{}`), &tags)
 		assert.Error(t, err)
+
+		err = json.Unmarshal([]byte(`[]`), &tags)
+		assert.NoError(t, err)
+		assert.ElementsMatch(t, Tags{}, tags)
 	})
 }
 

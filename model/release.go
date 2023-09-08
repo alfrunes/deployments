@@ -18,6 +18,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -64,15 +65,30 @@ func (tags Tags) MarshalJSON() ([]byte, error) {
 
 func (tags *Tags) Dedup() {
 	// Deduplicate tags:
-	set := make(map[Tag]bool)
-	result := []Tag{}
-	for _, item := range *tags {
-		if _, exists := set[item]; !exists {
-			set[item] = true
-			result = append(result, item)
+	s := *tags
+	sort.Slice(s, func(i, j int) bool {
+		return s[i] < s[j]
+	})
+	var (
+		i int
+		n int = len(s)
+	)
+	// Find first duplicate
+	for i = 1; i < len(s); i++ {
+		if s[i-1] >= s[i] {
+			n = i
+			break
 		}
 	}
-	*tags = result
+	// Deduplicate (if any)
+	for i < len(s) {
+		if s[i] > s[n-1] {
+			s[n] = s[i]
+			n++
+		}
+		i++
+	}
+	*tags = s[:n]
 }
 
 func (tags *Tags) UnmarshalJSON(b []byte) error {
